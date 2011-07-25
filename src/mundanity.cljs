@@ -12,8 +12,6 @@
 (def dot-fill (gfx/SolidFill. "blue"))
 (def dot-stroke (gfx/Stroke. 1 "black"))
 
-(def dot (atom {:x 1 :y 1}))
-
 (def size 40)
 (def margin 5)
 (def width (- size margin))
@@ -30,43 +28,55 @@
                square-stroke
                square-fill)))
 
-(defn init-graphic [dot-state]
-  (assoc dot-state :graphic
-         (.drawEllipse game-window
-                       (-> (:x dot-state) (* size) (+ margin (/ width 2)))
-                       (-> (:y dot-state) (* size) (+ margin (/ width 2)))
+(def dot (.drawEllipse game-window
+                       (+ margin (/ width 2))
+                       (+ margin (/ width 2))
                        (/ width 4)
                        (/ width 4)
                        dot-stroke
-                       dot-fill)))
+                       dot-fill)) 
 
-(swap! dot init-graphic)
+(defn dot-attr [attr]
+  (.. dot (getElement) (getAttribute attr)))
 
-(defn redraw-dot []
-  (let [x (:x @dot)
-        y (:y @dot)
-        half-width (/ width 2)
-        new-x (+ margin (* x size) half-width)
-        new-y (+ margin (* y size) half-width)]
-    (.setCenter (:graphic @dot) new-x new-y)))
+(defn dot-x []
+  (global/parseFloat (dot-attr "cx")))
+
+(defn dot-y []
+  (global/parseFloat (dot-attr "cy")))
+
+(defn update-x [step]
+  (let [cur-x (dot-x)
+        new-x (+ cur-x step)]
+    (if (and (< new-x (* num-cols size))
+             (> new-x 0))
+      new-x
+      cur-x)))
+
+(defn update-y [step]
+  (let [cur-y (dot-y)
+        new-y (+ cur-y step)]
+    (if (and (< new-y (* num-rows size))
+             (> new-y 0))
+      new-y
+      cur-y)))
+
+(defn redraw-dot [x-step y-step]
+  (.setCenter dot (update-x x-step) (update-y y-step)))
+
+(def movement-x
+  {KeyCodes/RIGHT size
+   KeyCodes/LEFT (* size -1)})
+
+(def movement-y
+  {KeyCodes/UP (* size -1)
+   KeyCodes/DOWN size})
 
 (def key-handler (events/KeyHandler. global/document))
+
 (defn key-event [e]
   (let [key (.keyCode e)]
-    (cond
-     (and (= key KeyCodes/UP)
-          (> (:y @dot) 0))
-     (swap! dot update-in [:y] dec)
-     (and (= key KeyCodes/RIGHT)
-          (<= (:x @dot) (- num-cols 2)))
-     (swap! dot update-in [:x] inc)
-     (and (= key KeyCodes/DOWN)
-          (<= (:y @dot) (- num-rows 2)))
-     (swap! dot update-in [:y] inc)
-     (and (= key KeyCodes/LEFT)
-          (> (:x @dot) 0))
-     (swap! dot update-in [:x] dec))
-    (redraw-dot)))
+    (redraw-dot (movement-x key) (movement-y key))))
 
 (events/listen key-handler "key" key-event)
 (.render game-window (.getElementById global/document "window"))
