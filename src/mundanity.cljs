@@ -10,5 +10,7 @@
 (.drawRect game-window
            0 300
            800 300
-           (gfx/SolidFill. "blue")
-           (gfx/Stroke. 1 "black"))
+           (gfx/Stroke. 1 "black")
+           (gfx/SolidFill. "blue"))
+
+(.render game-window (.getElementById global/document "window"))
